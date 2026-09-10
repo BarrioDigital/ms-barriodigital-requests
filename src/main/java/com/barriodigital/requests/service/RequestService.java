@@ -58,4 +58,12 @@ public class RequestService {
             return updated;
         });
     }
+
+    public boolean deleteById(Long id) {
+        if (requestRepository.existsById(id)) {
+            requestRepository.deleteById(id);
+            return true;
+        }
+        return false;
+    }
 }

@@ -51,6 +51,15 @@ public class RequestController {
         }
     }
 
+    // DELETE /api/requests/{id} -> Eliminar solicitud por ID
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteRequest(@PathVariable Long id) {
+        if (requestService.deleteById(id)) {
+            return ResponseEntity.noContent().build(); // HTTP 204
+        }
+        return ResponseEntity.notFound().build(); // HTTP 404
+    }
+
     @Data
     public static class StatusUpdateRequest {
         private RequestStatus status;
