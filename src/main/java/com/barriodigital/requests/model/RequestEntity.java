@@ -1,8 +1,10 @@
-package com.barriodigital.requests.entity;
+package com.barriodigital.requests.model;
 
-import com.barriodigital.requests.model.RequestStatus;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 @Entity
@@ -11,42 +13,36 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Request {
+public class RequestEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "procedure_id", nullable = false)
-    private Long procedureId;
+    @Column(nullable = false)
+    private Long procedureTypeId;
 
-    @Column(name = "citizen_id", nullable = false)
+    @Column(nullable = false)
     private String citizenId;
 
-    @Column(nullable = false, length = 200)
-    private String address;
-
-    @Column(columnDefinition = "TEXT")
     private String description;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 30)
+    @Column(nullable = false)
     private RequestStatus status;
 
-    @Column(name = "assigned_crew")
     private String assignedCrew;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
-
-    @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
-        if (this.status == null) this.status = RequestStatus.INGRESADO;
+        if (this.status == null) {
+            this.status = RequestStatus.INGRESADO;
+        }
     }
 
     @PreUpdate

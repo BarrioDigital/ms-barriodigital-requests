@@ -1,15 +1,18 @@
 server:
   port: 8082
-
+  error:
+      include-message: always
+      include-binding-errors: always
+      include-stacktrace: always
 spring:
   application:
     name: ms-barriodigital-requests
 
   datasource:
-    url: jdbc:mysql://localhost:3307/db_barriodigital?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
-    username: barriouser
-    password: barriopassword
-    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:postgresql://ep-billowing-glade-acuwy0c8-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+    username: neondb_owner
+    password: npg_giGnpC28weKo
+    driver-class-name: org.postgresql.Driver
 
   jpa:
     hibernate:
@@ -17,8 +20,7 @@ spring:
     show-sql: true
     properties:
       hibernate:
-        format_sql: true
-        dialect: org.hibernate.dialect.MySQLDialect
+        dialect: org.hibernate.dialect.PostgreSQLDialect
 
   rabbitmq:
     host: localhost
@@ -30,4 +32,7 @@ spring:
     bootstrap-servers: localhost:29092
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+services:
+  catalog-url: http://localhost:8081/api/catalog

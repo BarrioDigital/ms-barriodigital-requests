@@ -1,68 +1,46 @@
 package com.barriodigital.requests.controller;
 
-import com.barriodigital.requests.entity.Request;
+import com.barriodigital.requests.model.RequestEntity;
 import com.barriodigital.requests.model.RequestStatus;
 import com.barriodigital.requests.service.RequestService;
-import lombok.Data;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/requests")
-@RequiredArgsConstructor
 public class RequestController {
 
-    private final RequestService requestService;
+    @Autowired
+    private RequestService service;
 
-    // GET /api/requests -> Listar solicitudes
     @GetMapping
-    public ResponseEntity<List<Request>> getAllRequests() {
-        return ResponseEntity.ok(requestService.findAll());
+    public ResponseEntity<List<RequestEntity>> getAll() {
+        return ResponseEntity.ok(service.getAllRequests());
     }
 
-    // GET /api/requests/{id} -> Obtener solicitud por ID
     @GetMapping("/{id}")
-    public ResponseEntity<Request> getRequestById(@PathVariable Long id) {
-        return requestService.findById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<RequestEntity> getById(@PathVariable Long id) {
+        return ResponseEntity.ok(service.getById(id));
     }
 
-    // POST /api/requests -> Crear solicitud
     @PostMapping
-    public ResponseEntity<Request> createRequest(@RequestBody Request request) {
-        Request created = requestService.createRequest(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    public ResponseEntity<RequestEntity> createRequest(@RequestBody RequestEntity request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(service.createRequest(request));
     }
 
-    // PUT /api/requests/{id}/status -> Cambiar estado
     @PutMapping("/{id}/status")
-    public ResponseEntity<?> updateStatus(@PathVariable Long id, @RequestBody StatusUpdateRequest body) {
-        try {
-            return requestService.updateStatus(id, body.getStatus(), body.getCrew())
-                    .map(ResponseEntity::ok)
-                    .orElse(ResponseEntity.notFound().build());
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
-        }
-    }
-
-    // DELETE /api/requests/{id} -> Eliminar solicitud por ID
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteRequest(@PathVariable Long id) {
-        if (requestService.deleteById(id)) {
-            return ResponseEntity.noContent().build(); // HTTP 204
-        }
-        return ResponseEntity.notFound().build(); // HTTP 404
-    }
-
-    @Data
-    public static class StatusUpdateRequest {
-        private RequestStatus status;
-        private String crew;
+    public ResponseEntity<RequestEntity> updateStatus(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> body) {
+        
+        RequestStatus status = RequestStatus.valueOf(body.get("status"));
+        String crew = body.get("crew");
+        
+        return ResponseEntity.ok(service.updateStatus(id, status, crew));
     }
 }
