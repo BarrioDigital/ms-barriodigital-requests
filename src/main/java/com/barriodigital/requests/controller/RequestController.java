@@ -13,6 +13,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/requests")
+@CrossOrigin(origins = "http://localhost:5173") // <-- AÑADIR PARA PERMITIR PETICIONES REACT
 public class RequestController {
 
     @Autowired
