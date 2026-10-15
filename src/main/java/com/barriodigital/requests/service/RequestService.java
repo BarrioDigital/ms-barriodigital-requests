@@ -134,4 +134,27 @@ public class RequestService {
         }
         return json;
     }
+
+    // Método auxiliar para construir y publicar la notificación en RabbitMQ
+    private void publishRabbitNotification(RequestEntity request, String routingKey, String taskDetails) {
+        try {
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("requestId", request.getId());
+            payload.put("status", request.getStatus().name());
+            payload.put("citizenId", request.getCitizenId());
+            payload.put("email", "vecino@barriodigital.cl");
+            payload.put("address", "Dirección comunal registrada");
+            payload.put("taskDetails", taskDetails);
+
+            Map<String, Object> envelope = new HashMap<>();
+            envelope.put("eventId", java.util.UUID.randomUUID().toString());
+            envelope.put("traceId", java.util.UUID.randomUUID().toString());
+            envelope.put("timestamp", new java.util.Date().toString());
+            envelope.put("data", payload);
+
+            rabbitTemplate.convertAndSend("cmd.direct", routingKey, envelope);
+        } catch (Exception e) {
+            System.err.println("Error al publicar en RabbitMQ: " + e.getMessage());
+        }
+    }
 }
