@@ -23,23 +23,23 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
 
-  # Usar el nombre del servicio 'rabbitmq' definido en docker-compose
+  # Usar el nombre del contenedor 'barriodigital-rabbitmq' definido en Docker
   rabbitmq:
-    host: ${SPRING_RABBITMQ_HOST:rabbitmq}
+    host: ${SPRING_RABBITMQ_HOST:barriodigital-rabbitmq}
     port: 5672
     username: guest
     password: guest
 
-  # Usar el nombre del servicio 'kafka' definido en docker-compose
+  # Usar el nombre del contenedor 'barriodigital-kafka' definido en Docker
   kafka:
-    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:kafka:9092}
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:barriodigital-kafka:9092}
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
 
-# Usar el nombre del servicio 'ms-catalog' dentro de la red docker
+# Usar el nombre exacto del contenedor 'barriodigital-catalog' dentro de la red Docker
 services:
-  catalog-url: ${SERVICES_CATALOG_URL:http://ms-catalog:8081/api/catalog}
+  catalog-url: ${SERVICES_CATALOG_URL:http://barriodigital-catalog:8081/api/catalog}
 
 management:
   endpoints:
