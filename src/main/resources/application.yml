@@ -1,9 +1,10 @@
 server:
   port: 8082
   error:
-      include-message: always
-      include-binding-errors: always
-      include-stacktrace: always
+    include-message: always
+    include-binding-errors: always
+    include-stacktrace: always
+
 spring:
   application:
     name: ms-barriodigital-requests
@@ -36,3 +37,13 @@ spring:
 
 services:
   catalog-url: http://localhost:8081/api/catalog
+
+# Habilitar Actuator Health Check
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: always
