@@ -23,24 +23,31 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
 
-  # Usar el nombre del contenedor 'barriodigital-rabbitmq' definido en Docker
+  # Conexión a RabbitMQ
   rabbitmq:
     host: ${SPRING_RABBITMQ_HOST:barriodigital-rabbitmq}
     port: 5672
     username: guest
     password: guest
 
-  # Usar el nombre del contenedor 'barriodigital-kafka' definido en Docker
+  # Conexión a Kafka
   kafka:
     bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:barriodigital-kafka:9092}
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
 
-# Usar el nombre exacto del contenedor 'barriodigital-catalog' dentro de la red Docker
+# Nombres de Exchanges para mapeo dinámico
+rabbitmq:
+  exchanges:
+    direct: cmd.direct
+    topic: cmd.topic
+
+# URL del Microservicio de Catálogo (Usa el nombre del contenedor Docker)
 services:
   catalog-url: ${SERVICES_CATALOG_URL:http://barriodigital-catalog:8081/api/catalog}
 
+# Actuator Health Check
 management:
   endpoints:
     web:

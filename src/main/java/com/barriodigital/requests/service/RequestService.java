@@ -15,6 +15,7 @@ import org.springframework.web.client.RestTemplate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @Service
 public class RequestService {
@@ -45,12 +46,10 @@ public class RequestService {
 
     @Transactional
     public RequestEntity createRequest(RequestEntity request) {
-        // 1. Intentar descontar cupo en ms-barriodigital-catalog
         try {
             String url = catalogUrl + "/procedures/" + request.getProcedureTypeId() + "/decrease-quota";
             restTemplate.put(url, null);
         } catch (HttpClientErrorException ex) {
-            // Captura errores 40x de ms-catalog y extrae limpiamente el mensaje de negocio
             String responseBody = ex.getResponseBodyAsString();
             String cleanMessage = extractMessageFromJson(responseBody);
             throw new IllegalArgumentException(cleanMessage);
@@ -58,14 +57,14 @@ public class RequestService {
             throw new RuntimeException("Error al comunicarse con el microservicio de Catálogo: " + e.getMessage());
         }
 
-        // 2. Si el descuento es exitoso, se guarda la solicitud
         request.setStatus(RequestStatus.INGRESADO);
         RequestEntity saved = repository.save(request);
-        
-        // 3. Notificación de eventos
+
         publishKafkaEvent("requests.events", saved, null);
         publishKafkaEvent("audit.timeline", saved, null);
         
+        publishRabbitNotification(saved, "email.send", "Solicitud ingresada con éxito.");
+
         return saved;
     }
 
@@ -74,7 +73,6 @@ public class RequestService {
         RequestEntity request = getById(requestId);
         RequestStatus currentStatus = request.getStatus();
 
-        // Regla de Negocio Crítica
         if (newStatus == RequestStatus.EN_TERRENO && currentStatus != RequestStatus.ADMITIDO) {
             throw new IllegalArgumentException("No se puede pasar a EN_TERRENO sin haber pasado antes por ADMITIDO");
         }
@@ -86,19 +84,15 @@ public class RequestService {
 
         RequestEntity updated = repository.save(request);
 
-        // Notificación vía RabbitMQ (Protegida)
-        try {
-            Map<String, Object> notifyMessage = new HashMap<>();
-            notifyMessage.put("requestId", updated.getId());
-            notifyMessage.put("status", updated.getStatus().name());
-            notifyMessage.put("citizenId", updated.getCitizenId());
-
-            rabbitTemplate.convertAndSend("cmd.direct", "email.send", notifyMessage);
-        } catch (Exception e) {
-            System.err.println("Advertencia: No se pudo enviar el mensaje a RabbitMQ: " + e.getMessage());
+        if (newStatus == RequestStatus.ADMITIDO) {
+            publishRabbitNotification(updated, "email.send", "Tu solicitud ha sido ADMITIDA.");
+        } else if (newStatus == RequestStatus.EN_TERRENO) {
+            publishRabbitNotification(updated, "crew.ticket", "Asignación de terreno a cuadrilla: " + updated.getAssignedCrew());
+        } else if (newStatus == RequestStatus.RESUELTO) {
+            publishRabbitNotification(updated, "certificate.gen", "Generación de certificado de resolución.");
+            publishRabbitNotification(updated, "email.send", "Tu solicitud ha sido RESUELTA.");
         }
 
-        // Publicación de eventos en Kafka (Protegida)
         publishKafkaEvent("requests.events", updated, currentStatus);
         publishKafkaEvent("audit.timeline", updated, currentStatus);
 
@@ -120,7 +114,26 @@ public class RequestService {
         }
     }
 
-    // Método de soporte para extraer únicamente la descripción útil del error JSON
+    private void publishRabbitNotification(RequestEntity request, String routingKey, String taskDetails) {
+        try {
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("requestId", request.getId());
+            payload.put("status", request.getStatus().name());
+            payload.put("citizenId", request.getCitizenId());
+            payload.put("taskDetails", taskDetails);
+
+            Map<String, Object> envelope = new HashMap<>();
+            envelope.put("eventId", UUID.randomUUID().toString());
+            envelope.put("traceId", UUID.randomUUID().toString());
+            envelope.put("timestamp", new java.util.Date().toString());
+            envelope.put("data", payload);
+
+            rabbitTemplate.convertAndSend("cmd.direct", routingKey, envelope.toString());
+        } catch (Exception e) {
+            System.err.println("Error al publicar en RabbitMQ: " + e.getMessage());
+        }
+    }
+
     private String extractMessageFromJson(String json) {
         if (json == null || json.isBlank()) {
             return "Error de validación o regla de negocio en el catálogo";
@@ -133,28 +146,5 @@ public class RequestService {
             }
         }
         return json;
-    }
-
-    // Método auxiliar para construir y publicar la notificación en RabbitMQ
-    private void publishRabbitNotification(RequestEntity request, String routingKey, String taskDetails) {
-        try {
-            Map<String, Object> payload = new HashMap<>();
-            payload.put("requestId", request.getId());
-            payload.put("status", request.getStatus().name());
-            payload.put("citizenId", request.getCitizenId());
-            payload.put("email", "vecino@barriodigital.cl");
-            payload.put("address", "Dirección comunal registrada");
-            payload.put("taskDetails", taskDetails);
-
-            Map<String, Object> envelope = new HashMap<>();
-            envelope.put("eventId", java.util.UUID.randomUUID().toString());
-            envelope.put("traceId", java.util.UUID.randomUUID().toString());
-            envelope.put("timestamp", new java.util.Date().toString());
-            envelope.put("data", payload);
-
-            rabbitTemplate.convertAndSend("cmd.direct", routingKey, envelope);
-        } catch (Exception e) {
-            System.err.println("Error al publicar en RabbitMQ: " + e.getMessage());
-        }
     }
 }
